@@ -1,0 +1,131 @@
+1) Slim invocation prompt
+
+Paste one of these to trigger Aegis. Pick the line that matches your mode.
+
+Review (read-only)
+
+```
+aegis review — target: <repo/service> @ <commit/tag>, date <YYYY-MM-DD>. Owner: <name>. Owner-controlled: yes. Active testing: no. Scope: <paths/services/data classes>. Out of scope: <...>. Depth: Standard. Budget: one pass of the ten domains. Read-only — change nothing.
+```
+
+Harden (fixes on a branch)
+
+```
+aegis harden — target: <repo/service> @ <commit/tag>, date <YYYY-MM-DD>. Owner: <name>. Decider: <name>. Owner-controlled: yes. Active testing: no. Scope: <...>. Out of scope: <...>. Depth: Standard. Branch prefix: aegis/fix-. One cause per patch; each with a regression test that fails unpatched. Do not merge. Hand off anything needing secret rotation, prod config, migration, or DNS.
+```
+
+Triage (suspected incident)
+
+```
+aegis triage — target: <system>, first-seen <YYYY-MM-DDTHH:MMZ>. Owner: <name>. Decider: <name>. Contact channel: <...>. Authorized to contain: <yes/no; if yes, list pre-approved steps>. Preserve evidence (hash) before changes. Timeline with sources. No attribution speculation. Legal/breach determination is the owner's.
+```
+
+Minimal one-liner (if the runner fills in blanks)
+
+```
+Run aegis in <Review|Harden|Triage> mode on <target> at <commit/tag>. Owner-controlled, authorization on file. Apply preflight, all ten domains, severity×exposure, evidence tags, and the AEGIS REPORT output contract.
+```
+
+Optional flags you can append
+
+· Depth: Surface | Standard | Deep
+· Focus: <domain numbers> — e.g. Focus: 2,4,6 to spend budget on authz, secrets, CI
+· Advisory source: <OSV | GitHub Advisories | npm | PyPI>, checked <YYYY-MM-DD>
+· Report redaction: last-4 (default) or none (still never full secret)
+
+---
+
+2) SECURITY.md template
+
+Pair this with Aegis domains 4 (secrets), 5 (dependencies), 6 (CI/CD), 9 (logging), and 10 (recovery). Place at repo root as SECURITY.md. Replace <…>.
+
+```markdown
+# Security Policy
+
+## Supported versions
+
+| Version | Supported | Notes |
+|---|---|---|
+| `<vX.Y>` | ✅ | Current |
+| `<vX.Y-1>` | ✅ | Security fixes only until `<date>` |
+| `<older>` | ❌ | Upgrade required |
+
+## Reporting a vulnerability
+
+Please report privately. **Do not open a public issue.**
+
+- **Channel:** `<security@example.com>` (PGP: `<fingerprint>` at `<keys URL>`)
+- **Alt channel (if email fails):** `<form URL>`
+- **Acknowledgement target:** within `<2 business days>`
+- **Triage target:** initial assessment within `<5 business days>`
+- **Disclosure:** coordinated; we aim to publish a fix or mitigation within `<90 days>` unless complexity requires otherwise. We will keep you informed and credit you if you wish.
+
+### What to include
+- Affected version/commit and configuration
+- A minimal reproducer or clear description of conditions
+- Impact as you see it (confidentiality / integrity / availability)
+- Any suggested fix or mitigation
+- Whether you intend to disclose publicly, and on what timeline
+
+### What we will do
+- Confirm receipt and open a private tracking channel
+- Reproduce, rate severity (impact × exposure), and scope the fix
+- Ship a patch on a private branch with a regression test
+- Coordinate disclosure and advisory text with you
+- Credit you in the advisory unless you prefer otherwise
+
+### Please do not
+- Test against production data or real user accounts
+- Run automated scanners against our live services without prior written agreement (we can arrange a window and rate limit)
+- Access, modify, or exfiltrate data that is not yours
+- Publicly disclose before the coordinated date
+
+### Safe harbor
+We will not pursue legal action for good-faith research that respects this policy, stays within the scope below, and avoids privacy violations, data destruction, and service disruption. If in doubt, ask first at the channel above.
+
+## Scope
+
+**In scope**
+- `<repo name>` at `<commit/tag>` (source)
+- `<service URL>` (production surface listed in `security.txt`)
+- `<mobile app / CLI / SDK>` versions in the supported table
+
+**Out of scope**
+- Third-party services we integrate with (report to them; we will coordinate)
+- Social engineering, physical access, or DoS
+- Findings that require a compromised device or a rooted/jailbroken client
+- Best-practice-only items without a demonstrated security impact (we still welcome them as hardening suggestions)
+- Automated scanner output with no reproduction
+
+## Our commitments (internal, referenced by review)
+
+- **Secrets:** never committed; scanned on push and in history; server-only keys never reach client bundles; rotation path exists and is exercised. If a secret leaks: rotate first, treat as compromised; history rewrite is not a fix.
+- **Dependencies:** lockfile with enforced hashes; advisory source `<OSV|GH Advisories|…>` checked `<cadence>`; CI actions pinned to full commit SHAs; private packages scoped to a private registry.
+- **CI/CD:** untrusted triggers never run with secrets; deploy gated to protected branches/environments; cloud access via short-lived OIDC, not long-lived keys; token permissions least-privilege.
+- **Data:** encrypted in transit and at rest; non-prod data masked; retention and deletion tested, including backups and analytics; logs exclude secrets and sensitive fields.
+- **Detection:** auth failures, permission denials, admin actions, config changes, and sensitive-data access are logged; logs are tamper-evident and access-restricted; alerts have owners.
+- **Recovery:** encrypted off-host backups with deletion protection; dated restore on record; deploy rollback tested; runbooks exist; RTO `<…>` / RPO `<…>`.
+- **Disclosure:** we publish an advisory for confirmed, fixed vulnerabilities affecting supported versions.
+
+## Machine-readable pointers
+
+- `security.txt` at `https://<domain>/.well-known/security.txt` (RFC 9116)
+- Advisory feed: `<URL or "GitHub Security Advisories">`
+- SBOM: `<URL or "generated per release at <path>">`
+
+## Contact
+
+- Security: `<security@example.com>`
+- Security lead (incidents only): `<name / channel>`
+- Response hours: `<Mon–Fri 09:00–17:00 UTC>`; best-effort outside.
+```
+
+---
+
+Wiring notes
+
+· The invocation prompt intentionally mirrors Aegis preflight fields 1:1, so a pasted one-liner satisfies preflight without back-and-forth.
+· The SECURITY.md internal commitments restate the same controls Aegis checks, so a review can quote SECURITY.md as the intended baseline and report drift as a finding (e.g., "declared in SECURITY.md §CI/CD; not enforced — see F-06").
+· Add the advisory source + cadence to SECURITY.md and to the invocation prompt; domain 5 requires a named source and check date to be VERIFIED.
+
+Want a matching .well-known/security.txt and a CODEOWNERS snippet that names the security lead for the paths domain 4–6 care about?
