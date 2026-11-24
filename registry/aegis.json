@@ -32,5 +32,10 @@
       "observed_on": "2026-11-24",
       "evidence": "OBSERVED repository definition; runtime behavior unverified"
     }
-  ]
+  ],
+  "manual_handoff": {
+    "contract_path": "docs/security-skill-handoff.md",
+    "version": 1,
+    "execution_enabled": false
+  }
 }
