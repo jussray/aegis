@@ -1,0 +1,33 @@
+name: aegis-d5
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: ruby scripts/check-policy.rb
+      - run: ruby scripts/test-policy.rb
+  settings:
+    if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify owner-approved API access and enabled security settings
+        env:
+          GH_TOKEN: ${{ secrets.AEGIS_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$GH_TOKEN" || { echo "UNVERIFIED: read token missing"; exit 1; }
+          for endpoint in vulnerability-alerts automated-security-fixes; do
+            response=$(gh api "repos/$GITHUB_REPOSITORY/$endpoint" -i) || { echo "UNVERIFIED or disabled: $endpoint"; exit 1; }
+            printf '%s\n' "$response" | grep -Eq '^HTTP/[^ ]+ 204([[:space:]]|$)' || { echo "UNVERIFIED: $endpoint"; exit 1; }
+            echo "VERIFIED enabled: $endpoint"
+          done

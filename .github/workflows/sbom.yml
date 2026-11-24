@@ -1,0 +1,51 @@
+name: sbom
+on:
+  workflow_call:
+    inputs:
+      archive_sha256:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: source-dist
+          path: dist
+      - name: Verify archive and extract
+        env:
+          EXPECTED: ${{ inputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          printf '%s  dist/aegis.tar.gz\n' "$EXPECTED" | sha256sum -c -
+          mkdir source
+          tar -xzf dist/aegis.tar.gz -C source --no-same-owner --no-same-permissions
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          path: source
+          format: spdx-json
+          output-file: sbom-source.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          path: source
+          format: cyclonedx-json
+          output-file: sbom-source.cdx.json
+          upload-artifact: false
+          upload-release-assets: false
+      - name: Validate SBOM formats
+        run: |
+          jq -e '.spdxVersion == "SPDX-2.3" and (.packages | type == "array")' sbom-source.spdx.json >/dev/null
+          jq -e '.bomFormat == "CycloneDX" and (.specVersion | type == "string")' sbom-source.cdx.json >/dev/null
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: source-sboms
+          path: |
+            sbom-source.spdx.json
+            sbom-source.cdx.json
+          if-no-files-found: error
+          retention-days: 90

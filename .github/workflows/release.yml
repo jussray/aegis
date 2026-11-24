@@ -1,0 +1,142 @@
+name: release
+on:
+  push:
+    tags: ['v*.*.*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      archive_sha256: ${{ steps.archive.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build source archive once
+        id: archive
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mkdir dist
+          git archive --format=tar.gz --output=dist/aegis.tar.gz HEAD
+          echo "sha256=$(sha256sum dist/aegis.tar.gz | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: source-dist
+          path: dist/aegis.tar.gz
+          if-no-files-found: error
+          retention-days: 90
+  sbom:
+    needs: build
+    uses: ./.github/workflows/sbom.yml
+    with:
+      archive_sha256: ${{ needs.build.outputs.archive_sha256 }}
+  attest:
+    needs: [build, sbom]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: source-dist
+          path: dist
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: source-sboms
+          path: dist
+      - name: Verify build digest
+        env:
+          EXPECTED: ${{ needs.build.outputs.archive_sha256 }}
+        run: printf '%s  dist/aegis.tar.gz\n' "$EXPECTED" | sha256sum -c -
+      - name: Attest provenance of archive and SBOM assets
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: |
+            dist/aegis.tar.gz
+            dist/sbom-source.spdx.json
+            dist/sbom-source.cdx.json
+      - name: Attest SPDX predicate
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: dist/aegis.tar.gz
+          predicate-type: https://spdx.dev/Document/v2.3
+          predicate-path: dist/sbom-source.spdx.json
+      - name: Attest CycloneDX predicate
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: dist/aegis.tar.gz
+          predicate-type: https://cyclonedx.org/bom
+          predicate-path: dist/sbom-source.cdx.json
+  verify:
+    needs: [build, attest]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      attestations: read
+    outputs:
+      manifest_sha256: ${{ steps.verify.outputs.manifest_sha256 }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: source-dist
+          path: dist
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: source-sboms
+          path: dist
+      - name: Verify all provenance and SBOM predicates
+        id: verify
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED: ${{ needs.build.outputs.archive_sha256 }}
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          printf '%s  aegis.tar.gz\n' "$EXPECTED" | sha256sum -c -
+          args=(--repo "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/release.yml" --source-ref "$GITHUB_REF" --source-digest "$GITHUB_SHA")
+          for asset in aegis.tar.gz sbom-source.spdx.json sbom-source.cdx.json; do
+            test -s "$asset"
+            gh attestation verify "$asset" "${args[@]}"
+          done
+          for predicate in https://spdx.dev/Document/v2.3 https://cyclonedx.org/bom; do
+            gh attestation verify aegis.tar.gz "${args[@]}" --predicate-type "$predicate"
+          done
+          sha256sum aegis.tar.gz sbom-source.spdx.json sbom-source.cdx.json > SHA256SUMS
+          echo "manifest_sha256=$(sha256sum SHA256SUMS | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+        with:
+          name: verified-release
+          path: dist/
+          if-no-files-found: error
+          retention-days: 90
+  publish:
+    needs: [verify]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: verified-release
+          path: dist
+      - name: Publish verified bytes only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED: ${{ needs.verify.outputs.manifest_sha256 }}
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          printf '%s  SHA256SUMS\n' "$EXPECTED" | sha256sum -c -
+          sha256sum -c SHA256SUMS
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha)" = "$GITHUB_SHA"
+          gh release create "$GITHUB_REF_NAME" aegis.tar.gz sbom-source.spdx.json sbom-source.cdx.json SHA256SUMS --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes

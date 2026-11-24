@@ -1,0 +1,33 @@
+# Inactive examples. Merge only entries with actual manifests and approved registries.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule: {interval: weekly, day: monday, time: "06:00", timezone: Etc/UTC}
+    reviewers: ["jussray"]
+    labels: ["deps", "security", "javascript"]
+    groups:
+      npm-minor-patch: {patterns: ["*"], update-types: ["minor", "patch"]}
+  - package-ecosystem: pip
+    directory: "/"
+    schedule: {interval: weekly, day: monday, time: "06:00", timezone: Etc/UTC}
+    reviewers: ["jussray"]
+    labels: ["deps", "security", "python"]
+  - package-ecosystem: docker
+    directory: "/"
+    schedule: {interval: weekly, day: monday, time: "06:00", timezone: Etc/UTC}
+    reviewers: ["jussray"]
+    labels: ["deps", "security", "containers"]
+  - package-ecosystem: terraform
+    directory: "/infra"
+    schedule: {interval: weekly, day: monday, time: "06:00", timezone: Etc/UTC}
+    reviewers: ["jussray"]
+    labels: ["deps", "security", "iac"]
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule: {interval: weekly, day: monday, time: "06:00", timezone: Etc/UTC}
+    reviewers: ["jussray"]
+    labels: ["deps", "security", "go"]
+# Configure actual private registry URLs and Dependabot secrets only when needed.
+# Keep insecure-external-code-execution disabled; never commit tokens.
+# Any version ignore requires a named dependency, ticket and expiry.

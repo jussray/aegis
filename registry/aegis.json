@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "skill": "aegis",
+  "repository": "jussray/aegis",
+  "canonical_version": "1.1",
+  "execution_authorization": "none; each invocation requires its own preflight",
+  "records": [
+    {
+      "id": "JSC-022",
+      "title": "aegis",
+      "kind": "Skill definition",
+      "version": "1.0",
+      "status": "historical",
+      "path": "archive/aegis-v1.0.md",
+      "source": "User-supplied Ecosystem Library Revision 4, JSC-022",
+      "original_created_at": "2026-11-23",
+      "creation_date_evidence": "USER-REPORTED",
+      "observed_on": "2026-11-24",
+      "evidence": "OBSERVED supplied record; original authorship and date not independently verified"
+    },
+    {
+      "id": "AEGIS-1.1",
+      "title": "aegis",
+      "kind": "Skill definition",
+      "version": "1.1",
+      "status": "canonical",
+      "path": "skill v1",
+      "source": "GitHub repository file",
+      "source_commit": "edc14ab5d669c6d529d1a0406b9f69075783d5b7",
+      "source_blob": "64ad1ca2a26a6582dbcce8a299a20692276daec3",
+      "original_created_at": null,
+      "observed_on": "2026-11-24",
+      "evidence": "OBSERVED repository definition; runtime behavior unverified"
+    }
+  ],
+  "manual_handoff": {
+    "contract_path": "docs/security-skill-handoff.md",
+    "version": 1,
+    "execution_enabled": false
+  }
+}

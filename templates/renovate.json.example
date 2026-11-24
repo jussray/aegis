@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":preserveSemverRanges",
+    "group:allNonMajor"
+  ],
+  "timezone": "Etc/UTC",
+  "schedule": [
+    "before 6am on monday"
+  ],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "reviewers": [
+    "jussray"
+  ],
+  "labels": [
+    "deps",
+    "security"
+  ],
+  "assigneesFromCodeOwners": true,
+  "pinDigests": true,
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security",
+      "priority:high"
+    ],
+    "schedule": [
+      "at any time"
+    ],
+    "prCreation": "immediate"
+  },
+  "osvVulnerabilityAlerts": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on monday"
+    ]
+  },
+  "minimumReleaseAge": "3 days",
+  "packageRules": [
+    {
+      "matchManagers": [
+        "github-actions",
+        "dockerfile"
+      ],
+      "pinDigests": true
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ],
+  "dependencyDashboard": true
+}
