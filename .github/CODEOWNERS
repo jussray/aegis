@@ -1,0 +1,7 @@
+# Owner review; independent review and required-review rules are not established.
+* @jussray
+/SECURITY.md @jussray
+/.github/ @jussray
+/docs/ @jussray
+/scripts/ @jussray
+/templates/ @jussray

@@ -1,0 +1,6 @@
+# RFC 9116 template only. Do not publish until contact, canonical URL and expiry are confirmed.
+Contact: mailto:<owner-approved-security-email>
+Expires: <UTC-expiry-timestamp>
+Canonical: https://<approved-domain>/.well-known/security.txt
+Preferred-Languages: en
+Policy: <owner-approved-public-policy-url>
