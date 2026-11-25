@@ -41,7 +41,7 @@ jobs:
         run: |
           jq -e '.spdxVersion == "SPDX-2.3" and (.packages | type == "array")' sbom-source.spdx.json >/dev/null
           jq -e '.bomFormat == "CycloneDX" and (.specVersion | type == "string")' sbom-source.cdx.json >/dev/null
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: source-sboms
           path: |

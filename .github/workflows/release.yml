@@ -25,7 +25,7 @@ jobs:
           mkdir dist
           git archive --format=tar.gz --output=dist/aegis.tar.gz HEAD
           echo "sha256=$(sha256sum dist/aegis.tar.gz | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: source-dist
           path: dist/aegis.tar.gz
@@ -111,7 +111,7 @@ jobs:
           done
           sha256sum aegis.tar.gz sbom-source.spdx.json sbom-source.cdx.json > SHA256SUMS
           echo "manifest_sha256=$(sha256sum SHA256SUMS | cut -d ' ' -f1)" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: verified-release
           path: dist/
